@@ -4,13 +4,15 @@
 ansiRegex = require 'ansi-regex'
 supportsColor = require 'supports-color'
 
-SHADE_AMT = 0.1
+ADJUST_AMT = 0.02
+
+clamp = (v, l, u)-> Math.min u, Math.max l, v
 
 applyDomain = (val, lb, ub, tlb, tub)->
   Math.round ((val - lb) / (ub - lb)) * (tub - tlb)
 
 InkRender = (args...)->
-  console.log 'RENDER', @
+  console.log require('util').inspect @, colors: true, depth: null
 
 # thanks to Mohsen at http://stackoverflow.com/a/9493060/510036
 rgbToHsl = (r, g, b)->
@@ -58,6 +60,7 @@ class Ink
       fg: {}
       bg: {}
     @side = 'fg'
+    @lastProp = null
 
   reset:-> @codes = {}
 
@@ -67,14 +70,15 @@ class Ink
   fg:-> @side = 'fg'
   bg:-> @side = 'bg'
 
-  bright:-> # TODO
-  light:-> @codes[@side].mult =     2.0
-  dim:-> @codes[@side].mult =       1.0
-  lighter:->
-    @codes[@side].mult +=           SHADE_AMT
-    (amt)=>
-      --amt
-      @codes[@side].mult +=         amt * SHADE_AMT
+  by:-> (amt)->
+    # _lastcall is set by the wrappers
+    return if @_lastcall is 'by' or @_lastcall[0] is '_'
+    amt -= 1
+    @[@_lastcall] amt
+
+  lighter: (amt = 1)->
+    amt *= ADJUST_AMT
+    @_addLum amt
 
   black:-> @codes[@side].color =    [0,   0,   0  ]
   red:-> @codes[@side].color =      [127, 0,   0  ]
@@ -84,6 +88,11 @@ class Ink
   magenta:-> @codes[@side].color =  [127, 0,   127]
   cyan:-> @codes[@side].color =     [0,   127, 127]
   white:-> @codes[@side].color =    [127, 127, 127]
+
+  _addLum: (lum)->
+    hsl = rgbToHsl.apply null, @codes[@side].color
+    hsl[2] = clamp hsl[2] + lum, 0, 1
+    @codes[@side].color = hslToRgb.apply null, hsl
 
 # ... and a teaspoon of Javascript black voodoo magic ...
 module.exports = {}
@@ -97,17 +106,26 @@ defineFnProp = (obj, name, thisArg, fn)->
     get: -> fn.call thisArg
   return obj
 
-mkGetter = (ink, fn, getter)->->
-  fn.call ink
+mkGetter = (ink, name, fn, getter, bind = no)->->
+  if bind
+    res = fn.apply ink, arguments
+  else
+    res = fn.call ink
+  if res instanceof Function
+    res = mkGetter ink, name, res, getter, yes
+    return res
+  else
+    ink._lastcall = name
   return getter
 
 mkExport = (name, fn)->->
   ink = new Ink
   getter = InkRender.bind ink
-  for name, gfn of Ink.prototype
-    defineFnProp getter, name, mkGetter ink, gfn, getter
+  for name, gfn of Ink.prototype when name[0] isnt '_'
+    defineFnProp getter, name, mkGetter ink, name, gfn, getter
   fgbg = fn.call ink
+  ink._lastcall = name
   return getter
 
-for name, fn of Ink.prototype
+for name, fn of Ink.prototype when name[0] isnt '_'
   defineFnProp module.exports, name, mkExport name, fn
