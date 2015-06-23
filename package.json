@@ -37,6 +37,7 @@
     "source-map-support": "git://github.com/Qix-/node-source-map-support#e8a586779845"
   },
   "dependencies": {
-    "ansi-regex": "git://github.com/Qix-/ansi-regex#better-regex"
+    "ansi-regex": "git://github.com/Qix-/ansi-regex#better-regex",
+    "supports-color": "git://github.com/Qix-/supports-color#256-color"
   }
 }
