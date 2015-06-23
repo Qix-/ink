@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "ansi-regex": "git://github.com/Qix-/ansi-regex#better-regex",
+    "color-js": "^1.0.3",
     "supports-color": "git://github.com/Qix-/supports-color#256-color"
   }
 }
