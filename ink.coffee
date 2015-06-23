@@ -12,8 +12,52 @@ clamp = (v, l, u)-> Math.min u, Math.max l, v
 applyDomain = (val, lb, ub, tlb, tub)->
   Math.round ((val - lb) / (ub - lb)) * (tub - tlb)
 
+toAnsi16 = (col)->
+  rgb = col.toRGB()
+  r = applyDomain rgb.red, 0.0, 1.0, 0, 1
+  g = applyDomain rgb.green, 0.0, 1.0, 0, 1
+  b = applyDomain rgb.blue, 0.0, 1.0, 0, 1
+
+  g <<= 1
+  b <<= 2
+  return r | g | b
+
+toAnsi256 = (col)->
+  rgb = col.toRGB()
+  r = applyDomain rgb.red, 0.0, 1.0, 0, 5
+  g = applyDomain rgb.green, 0.0, 1.0, 0, 5
+  b = applyDomain rgb.blue, 0.0, 1.0, 0, 5
+  return (36 * r) + (6 * g) + b + 16
+
+toAnsi16m = (col)->
+  rgb = col.toRGB()
+  r = applyDomain rgb.red, 0.0, 1.0, 0, 255
+  g = applyDomain rgb.green, 0.0, 1.0, 0, 255
+  b = applyDomain rgb.blue, 0.0, 1.0, 0, 255
+  return "#{r};#{g};#{b}"
+
 InkRender = (args...)->
-  console.log require('util').inspect @, colors: true, depth: null
+  if not supportsColor
+    args = args.join ' '
+  else
+    # TODO this could *greatly* be improved
+    openCode = [
+      # TODO put codes here
+      0
+      if @codes.bold then 1
+      if @codes.fg.color then switch supportsColor.level
+        when 1 then 30 + toAnsi16 @codes.fg.color
+        when 2 then '38;5;' + toAnsi256 @codes.fg.color
+        when 3 then '48;2;' + toAnsi16m @codes.fg.color
+      if @codes.bg.color then switch supportsColor.level
+        when 1 then 40 + toAnsi16 @codes.bg.color
+        when 2 then '48;5;' + toAnsi256 @codes.bg.color
+        when 3 then '48;2;' + toAnsi16m @codes.bg.color
+    ].filter((c)->c).join ';'
+    args = args
+      .map (arg)-> "\x1b[#{openCode}m#{arg}\x1b[0m"
+      .join ' '
+  return args
 
 class Ink
   constructor: ->
