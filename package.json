@@ -8,7 +8,7 @@
     "type": "git",
     "url": "https://github.com/Qix-/ink.git"
   },
-  "main": "lib/ink.js",
+  "main": "ink.js",
   "bugs": {
     "url": "https://github.com/Qix-/ink/issues"
   },

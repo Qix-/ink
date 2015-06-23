@@ -1,9 +1,10 @@
 language: node_js
 
 script:
-  - ./bootstrap.sh
+  - ./build.sh
   - node_modules/.bin/istanbul cover node_modules/.bin/_mocha -- --reporter mocha-lcov-reporter
-  - node script/lcov-transform.js coverage/lcov.info `pwd`/ bin lib | node_modules/.bin/coveralls
+  - node script/lcov-transform.js coverage/lcov.info `pwd`/ . | node_modules/.bin/coveralls
+
 node_js:
   - "0.10"
   - "0.11"
